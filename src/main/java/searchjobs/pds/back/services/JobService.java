@@ -1,11 +1,13 @@
 package searchjobs.pds.back.services;
 
 import jakarta.transaction.Transactional;
+import org.springframework.stereotype.Service;
 import searchjobs.pds.back.entities.Job;
 import searchjobs.pds.back.repositories.JobRepository;
 
 import java.util.List;
 
+@Service
 public class JobService {
 
     private final JobRepository jobRepository;

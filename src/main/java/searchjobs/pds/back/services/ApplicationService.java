@@ -1,11 +1,13 @@
 package searchjobs.pds.back.services;
 
+import org.springframework.stereotype.Service;
 import searchjobs.pds.back.entities.Application;
 import searchjobs.pds.back.entities.User;
 import searchjobs.pds.back.repositories.ApplicationRepository;
 
 import java.util.List;
 
+@Service
 public class ApplicationService {
     private final ApplicationRepository applicationRepository;
 

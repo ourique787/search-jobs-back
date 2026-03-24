@@ -1,10 +1,13 @@
 package searchjobs.pds.back.services;
 
+import org.springframework.stereotype.Service;
 import searchjobs.pds.back.entities.User;
 import searchjobs.pds.back.repositories.UserRepository;
 
+import java.util.List;
 import java.util.Optional;
 
+@Service
 public class UserService {
 
     private final UserRepository userRepository;
@@ -15,6 +18,10 @@ public class UserService {
 
     public User salvar(User user){
         return userRepository.save(user);
+    }
+
+    public List<User> listarTodos(){
+        return userRepository.findAll();
     }
 
     public Optional<User> buscarPorEmail(String email){

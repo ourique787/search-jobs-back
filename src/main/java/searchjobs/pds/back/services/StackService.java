@@ -1,10 +1,12 @@
 package searchjobs.pds.back.services;
 
+import org.springframework.stereotype.Service;
 import searchjobs.pds.back.entities.Stack;
 import searchjobs.pds.back.repositories.StackRepository;
 
 import java.util.List;
 
+@Service
 public class StackService {
 
     private final StackRepository stackRepository;

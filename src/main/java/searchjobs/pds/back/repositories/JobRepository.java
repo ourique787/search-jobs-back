@@ -6,6 +6,7 @@ import searchjobs.pds.back.entities.Job;
 import searchjobs.pds.back.entities.Senioridade;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface JobRepository extends JpaRepository<Job, Long> {
@@ -13,4 +14,6 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
     //busca por uma empresa especifica
     List<Job> findByEmpresaContainingIgnoreCase(String empresa);
+
+    Optional<Job> findByLinkOriginal(String linkOriginal);
 }

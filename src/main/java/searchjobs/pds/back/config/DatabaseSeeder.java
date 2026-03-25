@@ -34,9 +34,27 @@ public class DatabaseSeeder implements CommandLineRunner {
             System.out.println(">> Populando banco com Stacks iniciais...");
 
             List<String> nomesStacks = Arrays.asList(
-                    "Java", "Spring Boot", "Python", "JavaScript", "TypeScript",
-                    "React", "Angular", "Node.js", "PostgreSQL", "Docker",
-                    "AWS", "Kotlin", "C#", ".NET", "Vue.js"
+                    // LINGUAGENS & BACKEND
+                    "Java", "Spring Boot", "Python", "C#", ".NET", "Node.js",
+                    "PHP", "Laravel", "Go", "Ruby", "Rails", "Rust", "Elixir", "Kotlin", "Scala",
+
+                    // FRONTEND
+                    "JavaScript", "TypeScript", "React", "Angular", "Vue.js",
+                    "Next.js", "Svelte", "HTML", "CSS", "Tailwind", "Bootstrap",
+
+                    // MOBILE
+                    "Flutter", "React Native", "Swift", "Objective-C", "Android", "iOS", "Ionic",
+
+                    // BANCO DE DADOS
+                    "PostgreSQL", "MySQL", "Oracle", "SQL Server", "MongoDB",
+                    "Redis", "Elasticsearch", "Cassandra", "Firebase", "SQL",
+
+                    // CLOUD & DEVOPS
+                    "AWS", "Azure", "Google Cloud", "GCP", "Docker", "Kubernetes",
+                    "Terraform", "Jenkins", "Ansible", "CI/CD", "Linux",
+
+                    // OUTROS / FERRAMENTAS
+                    "Git", "Jira", "Scrum", "Agile", "GraphQL", "Rest API", "Microservices"
             );
 
             List<Stack> stacks = nomesStacks.stream()

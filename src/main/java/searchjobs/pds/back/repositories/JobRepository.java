@@ -1,6 +1,7 @@
 package searchjobs.pds.back.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import searchjobs.pds.back.entities.Job;
 import searchjobs.pds.back.entities.Senioridade;
@@ -16,4 +17,7 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     List<Job> findByEmpresaContainingIgnoreCase(String empresa);
 
     Optional<Job> findByLinkOriginal(String linkOriginal);
+
+    @Query("SELECT DISTINCT j FROM Job j LEFT JOIN FETCH j.stacksRequisitadas")
+    List<Job> findAllComStacks();
 }

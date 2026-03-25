@@ -26,7 +26,7 @@ public class JobEnricherService implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        enriquecerVagas();
+        //enriquecerVagas();
     }
 
     @Transactional

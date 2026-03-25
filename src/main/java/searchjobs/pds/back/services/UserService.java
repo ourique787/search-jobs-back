@@ -12,19 +12,15 @@ public class UserService {
 
     private final UserRepository userRepository;
 
-    public UserService(UserRepository userRepository){
+    public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
-    public User salvar(User user){
-        return userRepository.save(user);
-    }
-
-    public List<User> listarTodos(){
+    public List<User> listarTodos() {
         return userRepository.findAll();
     }
 
-    public Optional<User> buscarPorEmail(String email){
+    public Optional<User> buscarPorEmail(String email) {
         return userRepository.findByEmail(email);
     }
 }

@@ -30,9 +30,12 @@ public class JobService {
 
     @Transactional
     public void associarStack(Job vaga, Stack stack) {
-        if (!vaga.getStacksRequisitadas().contains(stack)) {
-            vaga.getStacksRequisitadas().add(stack);
-            jobRepository.save(vaga);
+        // Recarrega dentro da transação para evitar LazyInitializationException
+        Job managed = jobRepository.findById(vaga.getId())
+                .orElseThrow(() -> new RuntimeException("Job não encontrado: " + vaga.getId()));
+        if (!managed.getStacksRequisitadas().contains(stack)) {
+            managed.getStacksRequisitadas().add(stack);
+            jobRepository.save(managed);
         }
     }
 

@@ -24,6 +24,7 @@ public class Job {
     @Column(columnDefinition = "TEXT")
     private String descricao;
 
+    @Column(unique = true)
     private String linkOriginal;
     private String fonte;
 

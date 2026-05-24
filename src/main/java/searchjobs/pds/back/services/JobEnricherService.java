@@ -13,7 +13,7 @@ import searchjobs.pds.back.repositories.StackRepository;
 import java.util.List;
 
 @Service
-@Order(3) // Roda depois do DatabaseSeeder (1) e ScraperService (2)
+@Order(5) // Roda após todos os scrapers: DatabaseSeeder(1) > Gupy(2) > InfoJobs(3) > Empregos(4)
 public class JobEnricherService implements CommandLineRunner {
 
     private final JobRepository jobRepository;
@@ -26,7 +26,7 @@ public class JobEnricherService implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        //enriquecerVagas();
+        enriquecerVagas();
     }
 
     @Transactional

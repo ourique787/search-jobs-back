@@ -28,6 +28,10 @@ public class JobService {
         return jobRepository.findByLinkOriginal(link);
     }
 
+    public Optional<Job> buscarPorId(Long id) {
+        return jobRepository.findById(id);
+    }
+
     @Transactional
     public void associarStack(Job vaga, Stack stack) {
         // Recarrega dentro da transação para evitar LazyInitializationException

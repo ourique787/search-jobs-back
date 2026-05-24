@@ -47,7 +47,7 @@ public class EmpregosBrScraperService implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        iniciarScraping();
+       // iniciarScraping();
     }
 
     public void iniciarScraping() {

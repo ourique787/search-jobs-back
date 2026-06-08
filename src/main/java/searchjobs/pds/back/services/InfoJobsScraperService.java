@@ -150,6 +150,7 @@ public class InfoJobsScraperService implements CommandLineRunner {
                                 novaVaga.setDataColeta(LocalDateTime.now());
                                 novaVaga.setLinkOriginal(link);
                                 novaVaga.getStacksRequisitadas().add(stack);
+                                novaVaga.setDescricao(buscarDescricao(driver, link));
                                 jobService.salvarVaga(novaVaga);
                                 totalSalvo++;
                                 System.out.println("💾 " + titulo + " | " + empresa);
@@ -300,6 +301,49 @@ public class InfoJobsScraperService implements CommandLineRunner {
         }
 
         System.out.println("ℹ️ [InfoJobs] Banner não encontrado — continuando.");
+    }
+
+    private String buscarDescricao(WebDriver driver, String jobUrl) {
+        String mainWindow = driver.getWindowHandle();
+        String newWindow = null;
+        try {
+            ((JavascriptExecutor) driver).executeScript("window.open('')");
+            newWindow = driver.getWindowHandles().stream()
+                    .filter(h -> !h.equals(mainWindow))
+                    .findFirst().orElse(null);
+            if (newWindow == null) return "";
+
+            driver.switchTo().window(newWindow);
+            driver.get(jobUrl);
+            Thread.sleep(2500);
+
+            String[] selectors = {
+                ".js_vacancyDataPanels",
+                "[itemprop='description']",
+                "#tab-description",
+                "div[class*='description']",
+                "section[class*='description']",
+                "div[class*='job-description']"
+            };
+
+            for (String sel : selectors) {
+                try {
+                    String texto = driver.findElement(By.cssSelector(sel)).getText().trim();
+                    if (texto.length() > 20 && !texto.equals(".")) return texto;
+                } catch (NoSuchElementException ignored) {}
+            }
+            return "Descrição não encontrada";
+        } catch (Exception e) {
+            return "";
+        } finally {
+            try {
+                if (newWindow != null && driver.getWindowHandles().contains(newWindow)) {
+                    driver.switchTo().window(newWindow);
+                    driver.close();
+                }
+                driver.switchTo().window(mainWindow);
+            } catch (Exception ignored) {}
+        }
     }
 
     private void pausaAleatoria(int minMs, int maxMs) throws InterruptedException {

@@ -150,6 +150,7 @@ public class EmpregosBrScraperService implements CommandLineRunner {
                                 novaVaga.setDataColeta(LocalDateTime.now());
                                 novaVaga.setLinkOriginal(link);
                                 novaVaga.getStacksRequisitadas().add(stack);
+                                novaVaga.setDescricao(buscarDescricao(driver, link));
                                 jobService.salvarVaga(novaVaga);
                                 totalSalvo++;
                                 System.out.println("💾 " + titulo + " | " + empresa);
@@ -330,6 +331,42 @@ public class EmpregosBrScraperService implements CommandLineRunner {
                 .replace("#",       "sharp")
                 .replace("+",       "plus")
                 .replaceAll("[^a-z0-9\\-]", "");
+    }
+
+    private String buscarDescricao(WebDriver driver, String jobUrl) {
+        String mainWindow = driver.getWindowHandle();
+        String newWindow = null;
+        try {
+            ((JavascriptExecutor) driver).executeScript("window.open('')");
+            newWindow = driver.getWindowHandles().stream()
+                    .filter(h -> !h.equals(mainWindow))
+                    .findFirst().orElse(null);
+            if (newWindow == null) return "";
+
+            driver.switchTo().window(newWindow);
+            driver.get(jobUrl);
+            Thread.sleep(2500);
+
+            // Layout Tailwind: pega o div.break-words irmão do h3 de descrição
+            try {
+                WebElement div = driver.findElement(
+                        By.xpath("//h3[contains(@class,'text-cinza90')]/following-sibling::div[contains(@class,'break-words')]"));
+                String texto = div.getText().trim();
+                if (texto.length() > 20) return texto;
+            } catch (NoSuchElementException ignored) {}
+
+            return "Descrição não encontrada";
+        } catch (Exception e) {
+            return "";
+        } finally {
+            try {
+                if (newWindow != null && driver.getWindowHandles().contains(newWindow)) {
+                    driver.switchTo().window(newWindow);
+                    driver.close();
+                }
+                driver.switchTo().window(mainWindow);
+            } catch (Exception ignored) {}
+        }
     }
 
     private void pausaAleatoria(int minMs, int maxMs) throws InterruptedException {

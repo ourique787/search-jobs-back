@@ -86,10 +86,9 @@ public class ScraperService implements CommandLineRunner {
             System.out.println("🌍 Site carregado.");
 
             try {
-                WebElement btnCookies = wait.until(
-                        ExpectedConditions.elementToBeClickable(By.id("onetrust-accept-btn-handler"))
-                );
-                btnCookies.click();
+                WebElement btnCookies = wait.until(ExpectedConditions.presenceOfElementLocated(
+                        By.cssSelector("span[aria-label='Aceitar Cookies'], span.cc-dismiss")));
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btnCookies);
                 System.out.println("🍪 Cookies aceitos.");
                 pausaAleatoria(2000, 3500);
             } catch (TimeoutException e) {
@@ -184,6 +183,7 @@ public class ScraperService implements CommandLineRunner {
                                 novaVaga.setDataColeta(LocalDateTime.now());
                                 novaVaga.setLinkOriginal(linkVaga);
                                 novaVaga.getStacksRequisitadas().add(stack);
+                                novaVaga.setDescricao(buscarDescricao(driver, linkVaga));
 
                                 jobService.salvarVaga(novaVaga);
                                 totalSalvo++;
@@ -242,6 +242,56 @@ public class ScraperService implements CommandLineRunner {
         } finally {
             driver.quit();
             System.out.println("🏁 Navegador fechado.");
+        }
+    }
+
+    private String buscarDescricao(WebDriver driver, String jobUrl) {
+        String mainWindow = driver.getWindowHandle();
+        String newWindow = null;
+        try {
+            ((JavascriptExecutor) driver).executeScript("window.open('')");
+            newWindow = driver.getWindowHandles().stream()
+                    .filter(h -> !h.equals(mainWindow))
+                    .findFirst().orElse(null);
+            if (newWindow == null) return "";
+
+            driver.switchTo().window(newWindow);
+            driver.get(jobUrl);
+            Thread.sleep(2500);
+
+            // Aceita cookies se o banner aparecer (só ocorre na primeira vaga da sessão)
+            try {
+                WebElement btnCookie = new WebDriverWait(driver, Duration.ofSeconds(5))
+                        .until(ExpectedConditions.presenceOfElementLocated(
+                                By.cssSelector("span[aria-label='Aceitar Cookies'], span.cc-dismiss")));
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btnCookie);
+                Thread.sleep(1000);
+            } catch (Exception ignored) {}
+
+            String[] selectors = {
+                "div[data-testid='text-section']",
+                "div[class*='description']",
+                "section[class*='description']",
+                "div[class*='job-description']"
+            };
+
+            for (String sel : selectors) {
+                try {
+                    String texto = driver.findElement(By.cssSelector(sel)).getText().trim();
+                    if (texto.length() > 20 && !texto.equals(".")) return texto;
+                } catch (NoSuchElementException ignored) {}
+            }
+            return "Descrição não encontrada";
+        } catch (Exception e) {
+            return "";
+        } finally {
+            try {
+                if (newWindow != null && driver.getWindowHandles().contains(newWindow)) {
+                    driver.switchTo().window(newWindow);
+                    driver.close();
+                }
+                driver.switchTo().window(mainWindow);
+            } catch (Exception ignored) {}
         }
     }
 

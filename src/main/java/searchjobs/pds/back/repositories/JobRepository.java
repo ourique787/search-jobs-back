@@ -20,4 +20,7 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
     @Query("SELECT DISTINCT j FROM Job j LEFT JOIN FETCH j.stacksRequisitadas")
     List<Job> findAllComStacks();
+
+    @Query("SELECT j FROM Job j WHERE j.descricao IS NULL OR j.descricao = '' OR LOWER(j.descricao) LIKE '%cookie%' OR j.descricao = '.'")
+    List<Job> findSemDescricao();
 }

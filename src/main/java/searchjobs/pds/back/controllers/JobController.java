@@ -7,9 +7,11 @@ import org.springframework.web.bind.annotation.*;
 import searchjobs.pds.back.entities.Job;
 import searchjobs.pds.back.entities.User;
 import searchjobs.pds.back.services.ApplicationService;
+import searchjobs.pds.back.services.DescricaoEnricherService;
 import searchjobs.pds.back.services.JobService;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("api/jobs")
@@ -17,10 +19,13 @@ public class JobController {
 
     private final JobService jobService;
     private final ApplicationService applicationService;
+    private final DescricaoEnricherService descricaoEnricherService;
 
-    public JobController(JobService jobService, ApplicationService applicationService){
+    public JobController(JobService jobService, ApplicationService applicationService,
+                         DescricaoEnricherService descricaoEnricherService) {
         this.jobService = jobService;
         this.applicationService = applicationService;
+        this.descricaoEnricherService = descricaoEnricherService;
     }
 
     @GetMapping
@@ -31,6 +36,14 @@ public class JobController {
     @PostMapping
     public ResponseEntity<Job> criar(@RequestBody Job job){
         return ResponseEntity.ok(jobService.salvarVaga(job));
+    }
+
+    @PostMapping("/enriquecer-descricoes")
+    public ResponseEntity<Map<String, String>> enriquecerDescricoes() {
+        new Thread(descricaoEnricherService::enriquecerDescricoes).start();
+        return ResponseEntity.ok(Map.of(
+                "status", "Enriquecimento iniciado. Acompanhe os logs do servidor."
+        ));
     }
 
     /**

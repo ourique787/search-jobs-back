@@ -33,6 +33,6 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<AuthResponse> me(@AuthenticationPrincipal User usuario) {
         if (usuario == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(new AuthResponse(null, usuario.getEmail(), usuario.getNome()));
+        return ResponseEntity.ok(new AuthResponse(null, usuario.getEmail(), usuario.getNome(), usuario.getLinkedin(), usuario.getGithub()));
     }
 }

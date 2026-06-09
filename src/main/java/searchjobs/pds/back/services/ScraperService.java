@@ -55,9 +55,9 @@ public class ScraperService implements CommandLineRunner {
         boolean cargaInicial = jobRepository.count() == 0;
 
         if (cargaInicial) {
-            System.out.println("🚀 Banco vazio — CARGA INICIAL (5 páginas, ~50 vagas por stack)");
+            System.out.println("🚀 Banco vazio — CARGA INICIAL (" + MAX_PAGINAS_CARGA_INICIAL + " páginas por stack)");
         } else {
-            System.out.println("🔄 Banco populado — ATUALIZAÇÃO (2 páginas, vagas recentes)");
+            System.out.println("🔄 Banco populado — ATUALIZAÇÃO (" + MAX_PAGINAS_ATUALIZACAO + " página por stack)");
         }
         System.out.println("📦 Total de stacks: " + stacks.size());
 
@@ -107,8 +107,8 @@ public class ScraperService implements CommandLineRunner {
                 System.out.println("\n════════════════════════════════════");
                 System.out.println("🔍 Stack " + (stacksProcessadas + 1) + "/" + stacks.size() + ": " + nomeStack);
                 System.out.println(cargaInicial
-                        ? "📋 Modo: carga inicial (5 páginas, ~50 vagas)"
-                        : "⚡ Modo: atualização (2 páginas, vagas recentes)");
+                        ? "📋 Modo: carga inicial (" + MAX_PAGINAS_CARGA_INICIAL + " páginas)"
+                        : "⚡ Modo: atualização (" + MAX_PAGINAS_ATUALIZACAO + " página)");
                 System.out.println("════════════════════════════════════");
 
                 driver.get(url);
@@ -116,7 +116,7 @@ public class ScraperService implements CommandLineRunner {
 
                 try {
                     wait.until(ExpectedConditions.presenceOfElementLocated(
-                            By.cssSelector("ul[class*='sc-414a0afd'] li")
+                            By.cssSelector("a[href*='.gupy.io/jobs/']")
                     ));
                 } catch (TimeoutException e) {
                     System.out.println("⚠️ Sem vagas para: " + nomeStack + " — pulando.");
@@ -134,37 +134,33 @@ public class ScraperService implements CommandLineRunner {
 
                     System.out.println("📄 Página " + pagina + "/" + limitePaginas + "...");
 
-                    wait.until(ExpectedConditions.presenceOfElementLocated(
-                            By.cssSelector("ul[class*='sc-414a0afd'] li")
-                    ));
                     pausaAleatoria(1000, 2000);
 
-                    List<WebElement> cards = driver.findElements(
-                            By.cssSelector("ul[class*='sc-414a0afd'] li")
+                    List<WebElement> links = driver.findElements(
+                            By.cssSelector("a[href*='.gupy.io/jobs/']")
                     );
-                    System.out.println("🔎 Cards nesta página: " + cards.size());
+                    if (!cargaInicial && links.size() > 10)
+                        links = links.subList(0, 10);
+                    System.out.println("🔎 Vagas nesta página: " + links.size());
 
-                    for (WebElement card : cards) {
+                    for (WebElement linkEl : links) {
                         try {
-                            WebElement linkEl = card.findElement(
-                                    By.cssSelector("a[class*='sc-4d881605']")
-                            );
                             String linkVaga = linkEl.getAttribute("href");
                             if (linkVaga == null) continue;
 
                             String titulo = "";
                             try {
-                                titulo = card.findElement(
-                                        By.cssSelector("h3[class*='sc-bZkfAO']")
-                                ).getText().trim();
+                                titulo = linkEl.findElement(By.cssSelector("h3")).getText().trim();
                             } catch (NoSuchElementException ignored) {}
+                            if (titulo.isBlank()) titulo = linkEl.getText().trim();
                             if (titulo.isBlank()) continue;
 
                             String empresa = "Não informada";
                             try {
-                                WebElement empresaEl = card.findElement(
-                                        By.cssSelector("div[aria-label*='Empresa']")
-                                );
+                                WebElement container = linkEl.findElement(
+                                        By.xpath("./ancestor::li[1]"));
+                                WebElement empresaEl = container.findElement(
+                                        By.cssSelector("div[aria-label*='Empresa']"));
                                 empresa = empresaEl.getAttribute("aria-label")
                                         .replace("Empresa ", "").trim();
                             } catch (NoSuchElementException ignored) {}

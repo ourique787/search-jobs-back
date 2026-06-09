@@ -37,26 +37,27 @@ public class DatabaseSeeder implements CommandLineRunner {
 
             List<String> nomesStacks = Arrays.asList(
                     // LINGUAGENS & BACKEND
-                    "Java", "Spring Boot", "Python", "C#", ".NET", "Node.js",
-                    "PHP", "Laravel", "Go", "Ruby", "Rails", "Rust", "Elixir", "Kotlin", "Scala",
+                    "Java", "Spring Boot", "Python", ".NET", "Node.js",
+                    "PHP", "Laravel", "Golang", "Ruby on Rails", "Kotlin",
+                    "C++", "Django", "FastAPI", "NestJS",
 
                     // FRONTEND
                     "JavaScript", "TypeScript", "React", "Angular", "Vue.js",
-                    "Next.js", "Svelte", "HTML", "CSS", "Tailwind", "Bootstrap",
+                    "Next.js", "Tailwind CSS",
 
                     // MOBILE
-                    "Flutter", "React Native", "Swift", "Objective-C", "Android", "iOS", "Ionic",
+                    "Flutter", "React Native", "Android SDK",
 
                     // BANCO DE DADOS
-                    "PostgreSQL", "MySQL", "Oracle", "SQL Server", "MongoDB",
-                    "Redis", "Elasticsearch", "Cassandra", "Firebase", "SQL",
+                    "PostgreSQL", "MySQL", "Oracle Database", "SQL Server", "MongoDB",
+                    "Redis", "Elasticsearch", "Firebase",
 
                     // CLOUD & DEVOPS
-                    "AWS", "Azure", "Google Cloud", "GCP", "Docker", "Kubernetes",
-                    "Terraform", "Jenkins", "Ansible", "CI/CD", "Linux",
+                    "AWS", "Azure", "Google Cloud Platform", "Docker", "Kubernetes",
+                    "Terraform", "Jenkins", "GitHub Actions", "GitLab CI",
 
-                    // OUTROS / FERRAMENTAS
-                    "Git", "Jira", "Scrum", "Agile", "GraphQL", "Rest API", "Microservices"
+                    // OUTROS
+                    "GraphQL", "RabbitMQ", "Apache Kafka", "Selenium"
             );
 
             List<Stack> stacks = nomesStacks.stream()

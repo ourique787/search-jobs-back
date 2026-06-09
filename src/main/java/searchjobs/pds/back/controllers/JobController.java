@@ -9,6 +9,7 @@ import searchjobs.pds.back.entities.User;
 import searchjobs.pds.back.services.ApplicationService;
 import searchjobs.pds.back.services.DescricaoEnricherService;
 import searchjobs.pds.back.services.JobService;
+import searchjobs.pds.back.services.ScrapingOrchestratorService;
 
 import java.util.List;
 import java.util.Map;
@@ -20,12 +21,15 @@ public class JobController {
     private final JobService jobService;
     private final ApplicationService applicationService;
     private final DescricaoEnricherService descricaoEnricherService;
+    private final ScrapingOrchestratorService scrapingOrchestratorService;
 
     public JobController(JobService jobService, ApplicationService applicationService,
-                         DescricaoEnricherService descricaoEnricherService) {
+                         DescricaoEnricherService descricaoEnricherService,
+                         ScrapingOrchestratorService scrapingOrchestratorService) {
         this.jobService = jobService;
         this.applicationService = applicationService;
         this.descricaoEnricherService = descricaoEnricherService;
+        this.scrapingOrchestratorService = scrapingOrchestratorService;
     }
 
     @GetMapping
@@ -36,6 +40,14 @@ public class JobController {
     @PostMapping
     public ResponseEntity<Job> criar(@RequestBody Job job){
         return ResponseEntity.ok(jobService.salvarVaga(job));
+    }
+
+    @PostMapping("/iniciar-scraping")
+    public ResponseEntity<Map<String, String>> iniciarScraping() {
+        new Thread(scrapingOrchestratorService::iniciarPipeline).start();
+        return ResponseEntity.ok(Map.of(
+                "status", "Pipeline iniciado: 3 scrapers em paralelo + enriquecimento. Acompanhe os logs."
+        ));
     }
 
     @PostMapping("/enriquecer-descricoes")

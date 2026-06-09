@@ -62,8 +62,8 @@ public class InfoJobsScraperService implements CommandLineRunner {
         boolean cargaInicial = jobRepository.count() == 0;
 
         System.out.println(cargaInicial
-                ? "🚀 [InfoJobs] CARGA INICIAL (5 páginas por stack)"
-                : "🔄 [InfoJobs] ATUALIZAÇÃO (1 página por stack)");
+                ? "🚀 [InfoJobs] CARGA INICIAL (" + MAX_PAGINAS_CARGA_INICIAL + " páginas por stack)"
+                : "🔄 [InfoJobs] ATUALIZAÇÃO (" + MAX_PAGINAS_ATUALIZACAO + " página por stack)");
         System.out.println("📦 [InfoJobs] Stacks: " + stacks.size());
 
         WebDriverManager.chromedriver().setup();
@@ -129,6 +129,8 @@ public class InfoJobsScraperService implements CommandLineRunner {
                     }
 
                     List<String[]> vagas = extrairVagasDaPagina(driver);
+                    if (!cargaInicial && vagas.size() > 10)
+                        vagas = vagas.subList(0, 10);
                     System.out.println("🔎 Vagas extraídas: " + vagas.size());
 
                     for (String[] vaga : vagas) {

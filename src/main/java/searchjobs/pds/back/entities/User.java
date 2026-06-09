@@ -30,6 +30,10 @@ public class User implements UserDetails {
     @Column(unique = true, nullable = false)
     private String email;
 
+    private String linkedin;
+
+    private String github;
+
     private String senhaHash;
 
     @Enumerated(EnumType.STRING)

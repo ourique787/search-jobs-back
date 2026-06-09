@@ -61,8 +61,8 @@ public class EmpregosBrScraperService implements CommandLineRunner {
         boolean cargaInicial = jobRepository.count() == 0;
 
         System.out.println(cargaInicial
-                ? "🚀 [Empregos.com.br] CARGA INICIAL (5 páginas por stack)"
-                : "🔄 [Empregos.com.br] ATUALIZAÇÃO (1 página por stack)");
+                ? "🚀 [Empregos.com.br] CARGA INICIAL (" + MAX_PAGINAS_CARGA_INICIAL + " páginas por stack)"
+                : "🔄 [Empregos.com.br] ATUALIZAÇÃO (" + MAX_PAGINAS_ATUALIZACAO + " página por stack)");
         System.out.println("📦 [Empregos.com.br] Stacks: " + stacks.size());
 
         WebDriverManager.chromedriver().setup();
@@ -126,6 +126,8 @@ public class EmpregosBrScraperService implements CommandLineRunner {
                     }
 
                     List<String[]> vagas = extrairVagasDaPagina(driver);
+                    if (!cargaInicial && vagas.size() > 10)
+                        vagas = vagas.subList(0, 10);
                     System.out.println("🔎 Vagas extraídas: " + vagas.size());
                     if (vagas.isEmpty()) {
                         diagnosticar(driver);
@@ -194,61 +196,58 @@ public class EmpregosBrScraperService implements CommandLineRunner {
 
     private List<String[]> extrairVagasDaPagina(WebDriver driver) {
         List<String[]> resultado = new ArrayList<>();
+        JavascriptExecutor js = (JavascriptExecutor) driver;
 
-        // Empregos.com.br: links de vaga contêm /emprego/ no href
-        List<WebElement> links = driver.findElements(
-                By.cssSelector("a[href*='/vaga/']"));
+        // Estratégia heading-first: parte dos h2/h3 (título da vaga) e sobe
+        // até encontrar o link /vaga/ no mesmo container — independente das
+        // classes Tailwind que o empregos.com.br usa nos cards.
+        Object rawResult = js.executeScript(
+            "var items = [];" +
+            "var seen = new Set();" +
+            "document.querySelectorAll('h2, h3').forEach(function(h) {" +
+            "  var titulo = h.innerText.trim();" +
+            "  if (!titulo || titulo.length < 5 || titulo.length > 150) return;" +
+            "  var node = h.parentElement;" +
+            "  var vagaHref = null, empresa = '';" +
+            "  for (var d = 0; d < 8 && node; d++) {" +
+            "    var a = node.querySelector(\"a[href*='/vaga/']\");" +
+            "    if (a && !a.href.startsWith('mailto:') && !a.href.includes('wa.me')) {" +
+            "      vagaHref = a.href.split('?')[0];" +
+            "      var empA = node.querySelector(\"a[href*='/empresa/']\");" +
+            "      if (empA) empresa = empA.innerText.trim();" +
+            "      break;" +
+            "    }" +
+            "    node = node.parentElement;" +
+            "  }" +
+            "  if (!vagaHref || seen.has(vagaHref)) return;" +
+            "  seen.add(vagaHref);" +
+            "  items.push([vagaHref, titulo, empresa]);" +
+            "});" +
+            "return items;"
+        );
 
-        for (WebElement link : links) {
-            try {
-                String href = link.getAttribute("href");
-                if (href == null || href.isBlank()) continue;
-                if (href.startsWith("/")) href = BASE_HOST + href;
-                final String linkFinal = href.split("\\?")[0];
+        if (!(rawResult instanceof List<?> rawList)) return resultado;
 
-                String titulo = link.getText().trim();
-                if (titulo.isBlank()) {
-                    try {
-                        titulo = link.findElement(
-                                By.cssSelector("h2, h3, [class*='title' i], [class*='titulo' i]"))
-                                .getText().trim();
-                    } catch (NoSuchElementException ignored) {}
-                }
-                if (titulo.isBlank()) continue;
+        System.out.println("   🔗 Candidatos encontrados via JS (headings): " + rawList.size());
 
-                String empresa = "Não informada";
-                try {
-                    WebElement container = link.findElement(
-                            By.xpath("./ancestor::li[1] | ./ancestor::article[1] "
-                                   + "| ./ancestor::div[contains(@class,'vaga')][1] "
-                                   + "| ./ancestor::div[contains(@class,'job')][1]"));
-                    empresa = extrairEmpresa(container);
-                } catch (Exception ignored) {}
+        for (Object item : rawList) {
+            if (!(item instanceof List<?> row) || row.size() < 3) continue;
+            String href   = String.valueOf(row.get(0)).trim();
+            String titulo = String.valueOf(row.get(1)).trim();
+            String emp    = String.valueOf(row.get(2)).trim();
 
-                boolean duplicado = resultado.stream().anyMatch(v -> v[0].equals(linkFinal));
-                if (!duplicado) {
-                    resultado.add(new String[]{linkFinal, titulo, empresa});
-                }
-            } catch (Exception ignored) {}
+            if (href.isEmpty() || !href.contains("/vaga/")) continue;
+            if (titulo.isBlank()) continue;
+            if (titulo.equalsIgnoreCase("mais detalhes")
+                    || titulo.equalsIgnoreCase("ver mais")
+                    || titulo.equalsIgnoreCase("detalhes")
+                    || titulo.equalsIgnoreCase("tipo de vaga")
+                    || titulo.equalsIgnoreCase("filtros")) continue;
+
+            resultado.add(new String[]{href, titulo, emp.isBlank() ? "Não informada" : emp});
         }
 
         return resultado;
-    }
-
-    private String extrairEmpresa(WebElement container) {
-        String[] selectors = {
-            "[class*='empresa' i]",
-            "[class*='company' i]",
-            "[class*='employer' i]",
-            "span[class*='nome' i]"
-        };
-        for (String sel : selectors) {
-            try {
-                String t = container.findElement(By.cssSelector(sel)).getText().trim();
-                if (!t.isBlank()) return t;
-            } catch (NoSuchElementException ignored) {}
-        }
-        return "Não informada";
     }
 
     private boolean esperarVagas(WebDriver driver, WebDriverWait wait) {

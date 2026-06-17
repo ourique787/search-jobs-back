@@ -9,6 +9,8 @@ import searchjobs.pds.back.dto.LoginRequest;
 import searchjobs.pds.back.dto.RegisterRequest;
 import searchjobs.pds.back.entities.User;
 import searchjobs.pds.back.services.AuthService;
+import searchjobs.pds.back.services.UserService;
+
 
 @RestController
 @RequestMapping("/api/auth")
@@ -33,6 +35,6 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<AuthResponse> me(@AuthenticationPrincipal User usuario) {
         if (usuario == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(new AuthResponse(null, usuario.getEmail(), usuario.getNome(), usuario.getLinkedin(), usuario.getGithub()));
+        return ResponseEntity.ok(UserService.toAuthResponse(null, usuario));
     }
 }

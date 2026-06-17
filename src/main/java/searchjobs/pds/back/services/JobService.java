@@ -44,6 +44,6 @@ public class JobService {
     }
 
     public List<Job> listarTodas() {
-        return jobRepository.findAll();
+        return jobRepository.findAllAtivasComStacks();
     }
 }

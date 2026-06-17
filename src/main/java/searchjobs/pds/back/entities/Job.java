@@ -33,6 +33,8 @@ public class Job {
 
     private LocalDateTime dataColeta = LocalDateTime.now();
 
+    private boolean ativo = true;
+
     @ManyToMany
     @JoinTable(
             name = "job_stacks",

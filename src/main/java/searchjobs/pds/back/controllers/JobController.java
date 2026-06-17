@@ -9,6 +9,7 @@ import searchjobs.pds.back.entities.User;
 import searchjobs.pds.back.services.ApplicationService;
 import searchjobs.pds.back.services.DescricaoEnricherService;
 import searchjobs.pds.back.services.JobService;
+import searchjobs.pds.back.services.JobValidationService;
 import searchjobs.pds.back.services.ScrapingOrchestratorService;
 
 import java.util.List;
@@ -22,14 +23,17 @@ public class JobController {
     private final ApplicationService applicationService;
     private final DescricaoEnricherService descricaoEnricherService;
     private final ScrapingOrchestratorService scrapingOrchestratorService;
+    private final JobValidationService jobValidationService;
 
     public JobController(JobService jobService, ApplicationService applicationService,
                          DescricaoEnricherService descricaoEnricherService,
-                         ScrapingOrchestratorService scrapingOrchestratorService) {
+                         ScrapingOrchestratorService scrapingOrchestratorService,
+                         JobValidationService jobValidationService) {
         this.jobService = jobService;
         this.applicationService = applicationService;
         this.descricaoEnricherService = descricaoEnricherService;
         this.scrapingOrchestratorService = scrapingOrchestratorService;
+        this.jobValidationService = jobValidationService;
     }
 
     @GetMapping
@@ -48,6 +52,47 @@ public class JobController {
         return ResponseEntity.ok(Map.of(
                 "status", "Pipeline iniciado: 3 scrapers em paralelo + enriquecimento. Acompanhe os logs."
         ));
+    }
+
+    @GetMapping("/diagnostico-url")
+    public ResponseEntity<Map<String, Object>> diagnosticarUrl(@RequestParam String url) {
+        try {
+            var client = java.net.http.HttpClient.newBuilder()
+                    .followRedirects(java.net.http.HttpClient.Redirect.NORMAL)
+                    .connectTimeout(java.time.Duration.ofSeconds(10))
+                    .build();
+            var request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(url))
+                    .GET()
+                    .timeout(java.time.Duration.ofSeconds(10))
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                    .build();
+            var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            String body = response.body();
+            return ResponseEntity.ok(Map.of(
+                    "status", response.statusCode(),
+                    "finalUrl", response.uri().toString(),
+                    "bodySnippet", body.length() > 500 ? body.substring(0, 500) : body,
+                    "contemEncerrada", body.toLowerCase().contains("essa vaga foi encerrada"),
+                    "contemDisponivel", body.toLowerCase().contains("não está mais disponivel")
+                            || body.toLowerCase().contains("não está mais disponível")
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of("erro", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/validar-vagas")
+    public ResponseEntity<Map<String, String>> validarVagas() {
+        new Thread(() -> {
+            try {
+                jobValidationService.validarVagas();
+            } catch (Exception e) {
+                System.err.println("❌ [Validação] Erro fatal: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }).start();
+        return ResponseEntity.ok(Map.of("status", "Validação iniciada. Acompanhe os logs do servidor."));
     }
 
     @PostMapping("/enriquecer-descricoes")

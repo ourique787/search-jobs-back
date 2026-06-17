@@ -26,4 +26,6 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
         ORDER BY a.dataInteracao DESC
     """)
     List<Application> findComFiltros(@Param("usuario") User usuario);
+
+    boolean existsByVagaId(Long vagaId);
 }

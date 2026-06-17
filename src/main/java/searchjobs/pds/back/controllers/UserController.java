@@ -1,9 +1,11 @@
 package searchjobs.pds.back.controllers;
 
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import searchjobs.pds.back.dto.AtualizarPerfilRequest;
 import searchjobs.pds.back.dto.AtualizarSenhaRequest;
 import searchjobs.pds.back.dto.AuthResponse;
@@ -11,6 +13,7 @@ import searchjobs.pds.back.dto.UserResponse;
 import searchjobs.pds.back.entities.User;
 import searchjobs.pds.back.services.UserService;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -45,8 +48,25 @@ public class UserController {
             @AuthenticationPrincipal User usuario,
             @RequestBody AtualizarPerfilRequest request) {
         AuthResponse response = userService.atualizarPerfil(
-                usuario.getUsername(), request.nome(), request.linkedin(), request.github());
+                usuario.getUsername(),
+                request.nome(),
+                request.linkedin(),
+                request.github(),
+                request.senioridadeAlvo(),
+                request.stackIds());
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = "/me/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> atualizarFoto(
+            @AuthenticationPrincipal User usuario,
+            @RequestPart("foto") MultipartFile foto) {
+        try {
+            AuthResponse response = userService.atualizarFotoPerfil(usuario.getUsername(), foto);
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao salvar foto."));
+        }
     }
 
     @PutMapping("/me/senha")
@@ -63,6 +83,6 @@ public class UserController {
 
     private UserResponse toResponse(User user) {
         return new UserResponse(user.getId(), user.getNome(), user.getEmail(),
-                user.getSenioridadeAlvo(), user.getStacksInteresse());
+                user.getFotoPerfil(), user.getSenioridadeAlvo(), user.getStacksPreferidas());
     }
 }

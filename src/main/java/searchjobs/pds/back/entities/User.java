@@ -10,6 +10,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -34,18 +35,20 @@ public class User implements UserDetails {
 
     private String github;
 
+    private String fotoPerfil;
+
     private String senhaHash;
 
     @Enumerated(EnumType.STRING)
     private Senioridade senioridadeAlvo;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-            name = "user_stacks",
+            name = "user_stacks_preferidas",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "stack_id")
     )
-    private Set<Stack> stacksInteresse;
+    private Set<Stack> stacksPreferidas = new HashSet<>();
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

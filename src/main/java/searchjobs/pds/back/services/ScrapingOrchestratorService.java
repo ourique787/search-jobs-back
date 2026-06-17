@@ -15,17 +15,20 @@ public class ScrapingOrchestratorService implements CommandLineRunner {
     private final EmpregosBrScraperService empregosBrScraperService;
     private final JobEnricherService jobEnricherService;
     private final DescricaoEnricherService descricaoEnricherService;
+    private final JobValidationService jobValidationService;
 
     public ScrapingOrchestratorService(ScraperService scraperService,
                                        InfoJobsScraperService infoJobsScraperService,
                                        EmpregosBrScraperService empregosBrScraperService,
                                        JobEnricherService jobEnricherService,
-                                       DescricaoEnricherService descricaoEnricherService) {
+                                       DescricaoEnricherService descricaoEnricherService,
+                                       JobValidationService jobValidationService) {
         this.scraperService = scraperService;
         this.infoJobsScraperService = infoJobsScraperService;
         this.empregosBrScraperService = empregosBrScraperService;
         this.jobEnricherService = jobEnricherService;
         this.descricaoEnricherService = descricaoEnricherService;
+        this.jobValidationService = jobValidationService;
     }
 
     @Override
@@ -52,7 +55,13 @@ public class ScrapingOrchestratorService implements CommandLineRunner {
         aguardar("Empregos", empregos);
 
         System.out.println("\n════════════════════════════════════");
-        System.out.println("✅ [Orchestrator] Scrapers concluídos — iniciando enriquecimento...");
+        System.out.println("✅ [Orchestrator] Scrapers concluídos — validando vagas existentes...");
+        System.out.println("════════════════════════════════════\n");
+
+        jobValidationService.validarVagas();
+
+        System.out.println("\n════════════════════════════════════");
+        System.out.println("✅ [Orchestrator] Validação concluída — iniciando enriquecimento...");
         System.out.println("════════════════════════════════════\n");
 
         jobEnricherService.enriquecerVagas();

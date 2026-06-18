@@ -60,8 +60,6 @@ public class DescricaoEnricherService {
             aceitarCookiesInfoJobs(driver, js);
             aceitarCookiesEmpregos(driver);
 
-            boolean gupyCookiesAceitos = false;
-
             for (int i = 0; i < vagas.size(); i++) {
                 Job vaga = vagas.get(i);
                 System.out.printf("📄 [%d/%d] [%s] %s%n",
@@ -69,14 +67,6 @@ public class DescricaoEnricherService {
                 try {
                     driver.get(vaga.getLinkOriginal());
                     Thread.sleep(2500);
-
-                    // Tenta aceitar cookies Gupy em cada página até conseguir uma vez.
-                    // Vagas encerradas não mostram o banner, então continua tentando
-                    // nas próximas até achar uma ativa. Após aceitar, o browser guarda
-                    // o consentimento e o flag evita tentativas desnecessárias.
-                    if ("Gupy".equals(vaga.getFonte()) && !gupyCookiesAceitos) {
-                        gupyCookiesAceitos = tentarAceitarCookiesGupy(driver);
-                    }
 
                     String descricao = extrairDescricao(driver);
                     vaga.setDescricao(descricao);
@@ -107,22 +97,6 @@ public class DescricaoEnricherService {
     }
 
     // ── Aceite de cookies por domínio ─────────────────────────────────────
-
-    // Tenta aceitar o banner da Gupy na página atual. Retorna true se conseguiu.
-    // Usa timeout curto para não travar em vagas encerradas (sem banner).
-    private boolean tentarAceitarCookiesGupy(WebDriver driver) {
-        try {
-            WebElement btn = new WebDriverWait(driver, Duration.ofSeconds(4))
-                    .until(ExpectedConditions.presenceOfElementLocated(
-                            By.cssSelector("span[aria-label='Aceitar Cookies'], span.cc-dismiss")));
-            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btn);
-            Thread.sleep(800);
-            System.out.println("   🍪 Cookies Gupy aceitos.");
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
 
     private void aceitarCookiesInfoJobs(WebDriver driver, JavascriptExecutor js) {
         try {
@@ -175,16 +149,17 @@ public class DescricaoEnricherService {
         }
 
         String[] selectors = {
-            // Gupy
-            "div[data-testid='text-section']",
+            // Trampos — div.description contém Descrição + Requisitos
+            "div.description",
             // InfoJobs
             ".js_vacancyDataPanels",
             "[itemprop='description']",
             "#tab-description",
             // Genéricos
+            "[class*='job-description']",
+            "[class*='job_description']",
             "div[class*='description']",
-            "section[class*='description']",
-            "div[class*='job-description']"
+            "section[class*='description']"
         };
 
         for (String sel : selectors) {

@@ -10,31 +10,34 @@ import java.util.concurrent.*;
 @Order(2)
 public class ScrapingOrchestratorService implements CommandLineRunner {
 
-    private final ScraperService scraperService;
+    private final TramposScraperService tramposScraperService;
     private final InfoJobsScraperService infoJobsScraperService;
     private final EmpregosBrScraperService empregosBrScraperService;
     private final JobEnricherService jobEnricherService;
     private final DescricaoEnricherService descricaoEnricherService;
+    private final JobTitleFilterService jobTitleFilterService;
     private final JobValidationService jobValidationService;
 
-    public ScrapingOrchestratorService(ScraperService scraperService,
+    public ScrapingOrchestratorService(TramposScraperService tramposScraperService,
                                        InfoJobsScraperService infoJobsScraperService,
                                        EmpregosBrScraperService empregosBrScraperService,
                                        JobEnricherService jobEnricherService,
                                        DescricaoEnricherService descricaoEnricherService,
+                                       JobTitleFilterService jobTitleFilterService,
                                        JobValidationService jobValidationService) {
-        this.scraperService = scraperService;
+        this.tramposScraperService = tramposScraperService;
         this.infoJobsScraperService = infoJobsScraperService;
         this.empregosBrScraperService = empregosBrScraperService;
         this.jobEnricherService = jobEnricherService;
         this.descricaoEnricherService = descricaoEnricherService;
+        this.jobTitleFilterService = jobTitleFilterService;
         this.jobValidationService = jobValidationService;
     }
 
     @Override
     public void run(String... args) {
         // Descomente para ativar o pipeline completo na inicialização:
-       //  iniciarPipeline();
+        // iniciarPipeline();
     }
 
     public void iniciarPipeline() {
@@ -44,28 +47,34 @@ public class ScrapingOrchestratorService implements CommandLineRunner {
 
         ExecutorService executor = Executors.newFixedThreadPool(3);
 
-        Future<?> gupy     = executor.submit(scraperService::iniciarScraping);
+        Future<?> trampos  = executor.submit(tramposScraperService::iniciarScraping);
         Future<?> infoJobs = executor.submit(infoJobsScraperService::iniciarScraping);
         Future<?> empregos = executor.submit(empregosBrScraperService::iniciarScraping);
 
         executor.shutdown();
 
-        aguardar("Gupy",     gupy);
+        aguardar("Trampos",  trampos);
         aguardar("InfoJobs", infoJobs);
         aguardar("Empregos", empregos);
 
         System.out.println("\n════════════════════════════════════");
-        System.out.println("✅ [Orchestrator] Scrapers concluídos — validando vagas existentes...");
-        System.out.println("════════════════════════════════════\n");
-
-        jobValidationService.validarVagas();
-
-        System.out.println("\n════════════════════════════════════");
-        System.out.println("✅ [Orchestrator] Validação concluída — iniciando enriquecimento...");
+        System.out.println("✅ [Orchestrator] Scrapers concluídos — enriquecendo stacks...");
         System.out.println("════════════════════════════════════\n");
 
         jobEnricherService.enriquecerVagas();
         descricaoEnricherService.enriquecerDescricoes();
+
+        System.out.println("\n════════════════════════════════════");
+        System.out.println("✅ [Orchestrator] Enriquecimento concluído — filtrando vagas não-tech...");
+        System.out.println("════════════════════════════════════\n");
+
+        jobTitleFilterService.filtrarVagasNaoTech();
+
+        System.out.println("\n════════════════════════════════════");
+        System.out.println("✅ [Orchestrator] Filtro concluído — validando vagas fora do ar...");
+        System.out.println("════════════════════════════════════\n");
+
+        jobValidationService.validarVagas();
 
         System.out.println("\n════════════════════════════════════");
         System.out.println("🎉 [Orchestrator] Pipeline finalizado!");

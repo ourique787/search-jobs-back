@@ -22,8 +22,8 @@ import java.util.Optional;
 import java.util.Random;
 
 @Service
-@Order(4)
-public class EmpregosBrScraperService implements CommandLineRunner {
+@Order(2)
+public class TramposScraperService implements CommandLineRunner {
 
     private final JobService jobService;
     private final StackRepository stackRepository;
@@ -34,12 +34,12 @@ public class EmpregosBrScraperService implements CommandLineRunner {
     private static final int MAX_PAGINAS_ATUALIZACAO   = 1;
     private static final int TAMANHO_LOTE              = 5;
 
-    private static final String BASE_URL  = "https://www.empregos.com.br/vagas/";
-    private static final String BASE_HOST = "https://www.empregos.com.br";
+    private static final String BASE_URL  = "https://trampos.co/oportunidades";
+    private static final String BASE_HOST = "https://trampos.co";
 
-    public EmpregosBrScraperService(JobService jobService,
-                                    StackRepository stackRepository,
-                                    JobRepository jobRepository) {
+    public TramposScraperService(JobService jobService,
+                                 StackRepository stackRepository,
+                                 JobRepository jobRepository) {
         this.jobService = jobService;
         this.stackRepository = stackRepository;
         this.jobRepository = jobRepository;
@@ -47,23 +47,23 @@ public class EmpregosBrScraperService implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-       // iniciarScraping();
+        iniciarScraping();
     }
 
     public void iniciarScraping() {
         List<Stack> stacks = stackRepository.findAll();
 
         if (stacks.isEmpty()) {
-            System.out.println("⚠️ [Empregos.com.br] Nenhuma stack no banco.");
+            System.out.println("⚠️ [Trampos] Nenhuma stack no banco.");
             return;
         }
 
         boolean cargaInicial = jobRepository.count() == 0;
 
         System.out.println(cargaInicial
-                ? "🚀 [Empregos.com.br] CARGA INICIAL (" + MAX_PAGINAS_CARGA_INICIAL + " páginas por stack)"
-                : "🔄 [Empregos.com.br] ATUALIZAÇÃO (" + MAX_PAGINAS_ATUALIZACAO + " página por stack)");
-        System.out.println("📦 [Empregos.com.br] Stacks: " + stacks.size());
+                ? "🚀 [Trampos] CARGA INICIAL (" + MAX_PAGINAS_CARGA_INICIAL + " páginas por stack)"
+                : "🔄 [Trampos] ATUALIZAÇÃO (" + MAX_PAGINAS_ATUALIZACAO + " página por stack)");
+        System.out.println("📦 [Trampos] Stacks: " + stacks.size());
 
         WebDriverManager.chromedriver().setup();
 
@@ -90,42 +90,43 @@ public class EmpregosBrScraperService implements CommandLineRunner {
         int stacksProcessadas = 0;
 
         try {
-            driver.get(BASE_URL + "java");
-            System.out.println("🌍 [Empregos.com.br] Site carregado.");
+            driver.get(BASE_URL + "?tr=java");
+            System.out.println("🌍 [Trampos] Site carregado.");
             pausaAleatoria(2000, 3500);
-            fecharBannerCookies(driver, js);
+            fecharBannerCookies(driver);
 
             for (Stack stack : stacks) {
-                String nomeStack  = stack.getNome();
-                String slug       = toSlug(nomeStack);
+                String nomeStack = stack.getNome();
+                String termo = nomeStack
+                        .replace(" ", "%20")
+                        .replace("#", "%23")
+                        .replace("+", "%2B");
                 int limitePaginas = cargaInicial ? MAX_PAGINAS_CARGA_INICIAL : MAX_PAGINAS_ATUALIZACAO;
 
                 System.out.println("\n════════════════════════════════════");
-                System.out.println("🔍 [Empregos.com.br] Stack " + (stacksProcessadas + 1)
+                System.out.println("🔍 [Trampos] Stack " + (stacksProcessadas + 1)
                         + "/" + stacks.size() + ": " + nomeStack);
                 System.out.println("════════════════════════════════════");
 
                 for (int pagina = 1; pagina <= limitePaginas; pagina++) {
                     String url = pagina == 1
-                            ? BASE_URL + slug
-                            : BASE_URL + slug + "?pagina=" + pagina;
+                            ? BASE_URL + "?tr=" + termo
+                            : BASE_URL + "?tr=" + termo + "&page=" + pagina;
 
-                    System.out.println("📄 [Empregos.com.br] Página " + pagina
-                            + "/" + limitePaginas + " → " + url);
+                    System.out.println("📄 [Trampos] Página " + pagina + "/" + limitePaginas + " → " + url);
 
                     driver.get(url);
                     pausaAleatoria(2000, 3500);
-                    fecharBannerCookies(driver, js);
+                    fecharBannerCookies(driver);
 
                     boolean temVagas = esperarVagas(driver, wait);
                     if (!temVagas) {
-                        System.out.println("⚠️ [Empregos.com.br] Sem vagas na página "
-                                + pagina + " para: " + nomeStack);
+                        System.out.println("⚠️ [Trampos] Sem vagas na página " + pagina + " para: " + nomeStack);
                         diagnosticar(driver);
                         break;
                     }
 
-                    List<String[]> vagas = extrairVagasDaPagina(driver);
+                    List<String[]> vagas = extrairVagasDaPagina(driver, js);
                     if (!cargaInicial && vagas.size() > 10)
                         vagas = vagas.subList(0, 10);
                     System.out.println("🔎 Vagas extraídas: " + vagas.size());
@@ -140,31 +141,41 @@ public class EmpregosBrScraperService implements CommandLineRunner {
                         String empresa = vaga[2];
                         try {
                             if (!ScraperJobFilter.eTechJob(titulo)) {
-                                System.out.println("⏭️ [Empregos.com.br] Ignorada (não é vaga de TI): " + titulo);
+                                System.out.println("⏭️ [Trampos] Ignorada (não é vaga de TI): " + titulo);
                                 continue;
                             }
 
                             Optional<Job> existente = jobService.buscarPorLink(link);
                             if (existente.isPresent()) {
-                                jobService.associarStack(existente.get(), stack);
-                                totalAssociado++;
-                                System.out.println("🔗 [" + nomeStack + "] → " + titulo);
+                                Job jobExistente = existente.get();
+                                String textoExistente = titulo + " "
+                                        + (jobExistente.getDescricao() != null ? jobExistente.getDescricao() : "");
+                                if (!stackConflitaComTexto(textoExistente, nomeStack)) {
+                                    jobService.associarStack(jobExistente, stack);
+                                    totalAssociado++;
+                                    System.out.println("🔗 [" + nomeStack + "] → " + titulo);
+                                }
                             } else {
+                                // Busca descrição primeiro para usar na checagem de conflito
+                                String descricao = buscarDescricao(driver, link);
+                                String textoCompleto = titulo + " " + descricao;
+
                                 Job novaVaga = new Job();
                                 novaVaga.setTitulo(titulo);
                                 novaVaga.setEmpresa(empresa);
-                                novaVaga.setFonte("Empregos.com.br");
+                                novaVaga.setFonte("Trampos");
                                 novaVaga.setDataColeta(LocalDateTime.now());
                                 novaVaga.setLinkOriginal(link);
-                                novaVaga.getStacksRequisitadas().add(stack);
-                                novaVaga.setDescricao(buscarDescricao(driver, link));
+                                novaVaga.setDescricao(descricao);
+                                if (!stackConflitaComTexto(textoCompleto, nomeStack)) {
+                                    novaVaga.getStacksRequisitadas().add(stack);
+                                }
                                 jobService.salvarVaga(novaVaga);
                                 totalSalvo++;
                                 System.out.println("💾 " + titulo + " | " + empresa);
                             }
                         } catch (Exception e) {
-                            System.out.println("⚠️ [Empregos.com.br] Erro ao salvar: "
-                                    + e.getMessage());
+                            System.out.println("⚠️ [Trampos] Erro ao salvar: " + e.getMessage());
                         }
                     }
 
@@ -174,8 +185,8 @@ public class EmpregosBrScraperService implements CommandLineRunner {
                 stacksProcessadas++;
 
                 if (stacksProcessadas % TAMANHO_LOTE == 0 && stacksProcessadas < stacks.size()) {
-                    int pausa = 20000 + random.nextInt(10000);
-                    System.out.println("⏸️ [Empregos.com.br] Pausa entre lotes: " + pausa / 1000 + "s");
+                    int pausa = 15000 + random.nextInt(10000);
+                    System.out.println("⏸️ [Trampos] Pausa entre lotes: " + pausa / 1000 + "s");
                     Thread.sleep(pausa);
                 } else {
                     pausaAleatoria(4000, 8000);
@@ -183,43 +194,41 @@ public class EmpregosBrScraperService implements CommandLineRunner {
             }
 
             System.out.println("\n════════════════════════════════════");
-            System.out.println("🎉 [Empregos.com.br] Finalizado!");
+            System.out.println("🎉 [Trampos] Finalizado!");
             System.out.println("💾 Novas vagas: " + totalSalvo);
             System.out.println("🔗 Stacks associadas: " + totalAssociado);
             System.out.println("════════════════════════════════════");
 
         } catch (Exception e) {
-            System.err.println("❌ [Empregos.com.br] Erro geral: " + e.getMessage());
+            System.err.println("❌ [Trampos] Erro geral: " + e.getMessage());
             e.printStackTrace();
         } finally {
             driver.quit();
-            System.out.println("🏁 [Empregos.com.br] Navegador fechado.");
+            System.out.println("🏁 [Trampos] Navegador fechado.");
         }
     }
 
     // ── Extração ──────────────────────────────────────────────────────────
 
-    private List<String[]> extrairVagasDaPagina(WebDriver driver) {
+    private List<String[]> extrairVagasDaPagina(WebDriver driver, JavascriptExecutor js) {
         List<String[]> resultado = new ArrayList<>();
-        JavascriptExecutor js = (JavascriptExecutor) driver;
 
-        // Estratégia heading-first: parte dos h2/h3 (título da vaga) e sobe
-        // até encontrar o link /vaga/ no mesmo container — independente das
-        // classes Tailwind que o empregos.com.br usa nos cards.
+        // Estratégia heading-first: parte de h2/h3/h4, sobe até encontrar
+        // o link /oportunidades/ no container pai — resiliente a mudanças de classe.
         Object rawResult = js.executeScript(
             "var items = [];" +
             "var seen = new Set();" +
-            "document.querySelectorAll('h2, h3').forEach(function(h) {" +
+            "document.querySelectorAll('h2, h3, h4').forEach(function(h) {" +
             "  var titulo = h.innerText.trim();" +
             "  if (!titulo || titulo.length < 5 || titulo.length > 150) return;" +
             "  var node = h.parentElement;" +
             "  var vagaHref = null, empresa = '';" +
             "  for (var d = 0; d < 8 && node; d++) {" +
-            "    var a = node.querySelector(\"a[href*='/vaga/']\");" +
-            "    if (a && !a.href.startsWith('mailto:') && !a.href.includes('wa.me')) {" +
+            "    var a = node.querySelector(\"a[href*='/oportunidades/']\");" +
+            "    if (a && !a.href.startsWith('mailto:')) {" +
             "      vagaHref = a.href.split('?')[0];" +
-            "      var empA = node.querySelector(\"a[href*='/empresa/']\");" +
-            "      if (empA) empresa = empA.innerText.trim();" +
+            "      var empEl = node.querySelector('[class*=\"company\"], [class*=\"empresa\"], [class*=\"employer\"], [class*=\"organization\"], [class*=\"client\"]');" +
+            "      if (empEl) empresa = empEl.innerText.trim();" +
             "      break;" +
             "    }" +
             "    node = node.parentElement;" +
@@ -233,20 +242,18 @@ public class EmpregosBrScraperService implements CommandLineRunner {
 
         if (!(rawResult instanceof List<?> rawList)) return resultado;
 
-        System.out.println("   🔗 Candidatos encontrados via JS (headings): " + rawList.size());
+        System.out.println("   🔗 Candidatos encontrados via JS: " + rawList.size());
 
         for (Object item : rawList) {
             if (!(item instanceof List<?> row) || row.size() < 3) continue;
-            String href   = String.valueOf(row.get(0)).trim();
-            String titulo = String.valueOf(row.get(1)).trim();
-            String emp    = String.valueOf(row.get(2)).trim();
+            String href    = String.valueOf(row.get(0)).trim();
+            String titulo  = String.valueOf(row.get(1)).trim();
+            String emp     = String.valueOf(row.get(2)).trim();
 
-            if (href.isEmpty() || !href.contains("/vaga/")) continue;
+            if (href.isEmpty() || !href.contains("/oportunidades/")) continue;
             if (titulo.isBlank()) continue;
-            if (titulo.equalsIgnoreCase("mais detalhes")
-                    || titulo.equalsIgnoreCase("ver mais")
-                    || titulo.equalsIgnoreCase("detalhes")
-                    || titulo.equalsIgnoreCase("tipo de vaga")
+            if (titulo.equalsIgnoreCase("ver mais")
+                    || titulo.equalsIgnoreCase("mais detalhes")
                     || titulo.equalsIgnoreCase("filtros")) continue;
 
             resultado.add(new String[]{href, titulo, emp.isBlank() ? "Não informada" : emp});
@@ -258,84 +265,14 @@ public class EmpregosBrScraperService implements CommandLineRunner {
     private boolean esperarVagas(WebDriver driver, WebDriverWait wait) {
         try {
             wait.until(ExpectedConditions.presenceOfElementLocated(
-                    By.cssSelector("a[href*='/vaga/']")));
+                    By.cssSelector("a[href*='/oportunidades/']")));
             return true;
         } catch (TimeoutException e) {
             return false;
         }
     }
 
-    // ── Diagnóstico ───────────────────────────────────────────────────────
-
-    private void diagnosticar(WebDriver driver) {
-        System.out.println("🔬 [Empregos.com.br] === DIAGNÓSTICO ===");
-        System.out.println("   Título: " + driver.getTitle());
-        System.out.println("   URL: " + driver.getCurrentUrl());
-
-        System.out.println("   Botões visíveis:");
-        int bc = 0;
-        for (WebElement b : driver.findElements(By.tagName("button"))) {
-            if (b.isDisplayed() && !b.getText().isBlank()) {
-                System.out.println("     \"" + b.getText().trim() + "\"");
-                if (++bc >= 5) break;
-            }
-        }
-
-        System.out.println("   Primeiros 8 hrefs:");
-        int ac = 0;
-        for (WebElement a : driver.findElements(By.tagName("a"))) {
-            String href = a.getAttribute("href");
-            if (href != null && !href.isBlank() && !href.startsWith("javascript")) {
-                System.out.println("     " + href);
-                if (++ac >= 8) break;
-            }
-        }
-        System.out.println("🔬 === FIM DIAGNÓSTICO ===");
-    }
-
-    // ── Cookies ───────────────────────────────────────────────────────────
-
-    private void fecharBannerCookies(WebDriver driver, JavascriptExecutor js) {
-        // 1ª: API JS (OneTrust / Didomi)
-        try {
-            js.executeScript(
-                "if (typeof OneTrust !== 'undefined') { OneTrust.AllowAll(); } " +
-                "else if (typeof Didomi !== 'undefined') { Didomi.setUserAgreeToAll(); }"
-            );
-            pausaAleatoria(500, 800);
-        } catch (Exception ignored) {}
-
-        // 2ª: botão pelo texto — aguarda até 6s para aparecer
-        try {
-            WebElement btn = new WebDriverWait(driver, Duration.ofSeconds(6)).until(d -> {
-                for (WebElement b : d.findElements(By.tagName("button"))) {
-                    if (!b.isDisplayed()) continue;
-                    String txt = b.getText().toLowerCase().trim();
-                    if (txt.contains("aceitar") || txt.contains("concordar")
-                            || txt.contains("permitir") || txt.contains("accept")
-                            || txt.contains("agree")) return b;
-                }
-                return null;
-            });
-            btn.click();
-            System.out.println("🍪 [Empregos.com.br] Cookies aceitos: \"" + btn.getText().trim() + "\"");
-            pausaAleatoria(600, 1000);
-        } catch (Exception ignored) {}
-    }
-
-    // ── Utilitários ───────────────────────────────────────────────────────
-
-    private String toSlug(String nome) {
-        return nome.toLowerCase()
-                .replace("c#",      "csharp")
-                .replace("c++",     "cplusplus")
-                .replace(".net",    "net")
-                .replace("node.js", "nodejs")
-                .replace(" ",       "-")
-                .replace("#",       "sharp")
-                .replace("+",       "plus")
-                .replaceAll("[^a-z0-9\\-]", "");
-    }
+    // ── Descrição ─────────────────────────────────────────────────────────
 
     private String buscarDescricao(WebDriver driver, String jobUrl) {
         String mainWindow = driver.getWindowHandle();
@@ -349,13 +286,17 @@ public class EmpregosBrScraperService implements CommandLineRunner {
 
             driver.switchTo().window(newWindow);
             driver.get(jobUrl);
-            Thread.sleep(2500);
 
-            // Layout Tailwind: pega o div.break-words irmão do h3 de descrição
+            // Aguarda o Ember.js renderizar o conteúdo da vaga
             try {
-                WebElement div = driver.findElement(
-                        By.xpath("//h3[contains(@class,'text-cinza90')]/following-sibling::div[contains(@class,'break-words')]"));
-                String texto = div.getText().trim();
+                new WebDriverWait(driver, Duration.ofSeconds(10))
+                        .until(ExpectedConditions.presenceOfElementLocated(
+                                By.cssSelector("div.description .text, div.description")));
+            } catch (TimeoutException ignored) {}
+
+            // div.description contém Descrição + Requisitos no Trampos
+            try {
+                String texto = driver.findElement(By.cssSelector("div.description")).getText().trim();
                 if (texto.length() > 20) return texto;
             } catch (NoSuchElementException ignored) {}
 
@@ -371,6 +312,61 @@ public class EmpregosBrScraperService implements CommandLineRunner {
                 driver.switchTo().window(mainWindow);
             } catch (Exception ignored) {}
         }
+    }
+
+    // ── Diagnóstico ───────────────────────────────────────────────────────
+
+    private void diagnosticar(WebDriver driver) {
+        System.out.println("🔬 [Trampos] === DIAGNÓSTICO ===");
+        System.out.println("   Título: " + driver.getTitle());
+        System.out.println("   URL: " + driver.getCurrentUrl());
+        System.out.println("   Primeiros 8 hrefs:");
+        int ac = 0;
+        for (WebElement a : driver.findElements(By.tagName("a"))) {
+            String href = a.getAttribute("href");
+            if (href != null && !href.isBlank() && !href.startsWith("javascript")) {
+                System.out.println("     " + href);
+                if (++ac >= 8) break;
+            }
+        }
+        System.out.println("🔬 === FIM DIAGNÓSTICO ===");
+    }
+
+    // ── Cookies ───────────────────────────────────────────────────────────
+
+    private void fecharBannerCookies(WebDriver driver) {
+        try {
+            WebElement btn = new WebDriverWait(driver, Duration.ofSeconds(5)).until(d -> {
+                for (WebElement b : d.findElements(By.tagName("button"))) {
+                    if (!b.isDisplayed()) continue;
+                    String txt = b.getText().toLowerCase().trim();
+                    if (txt.contains("aceitar") || txt.contains("concordar")
+                            || txt.contains("permitir") || txt.contains("accept")
+                            || txt.contains("agree")) return b;
+                }
+                return null;
+            });
+            btn.click();
+            System.out.println("🍪 [Trampos] Cookies aceitos: \"" + btn.getText().trim() + "\"");
+            pausaAleatoria(600, 1000);
+        } catch (Exception ignored) {
+            System.out.println("ℹ️ [Trampos] Banner de cookies não encontrado — continuando.");
+        }
+    }
+
+    // ── Utilitários ───────────────────────────────────────────────────────
+
+    // Retorna true se o texto (título + descrição) contém o nome da stack como SUBSTRING
+    // mas NÃO como palavra inteira — indica falso positivo de substring.
+    // Ex: busca "java", texto contém "javascript" mas não "java" isolado → conflito → não associa.
+    // Textos sem menção alguma ao termo ("Backend Developer") → sem conflito → associa (confia na busca).
+    private boolean stackConflitaComTexto(String texto, String nomeStack) {
+        String t = texto.toLowerCase();
+        String s = nomeStack.toLowerCase();
+        String sRegex = s.replace(".", "\\.");
+        boolean contemSubstring      = t.contains(s);
+        boolean contemPalavraInteira = t.matches(".*\\b" + sRegex + "\\b.*");
+        return contemSubstring && !contemPalavraInteira;
     }
 
     private void pausaAleatoria(int minMs, int maxMs) throws InterruptedException {

@@ -139,6 +139,11 @@ public class InfoJobsScraperService implements CommandLineRunner {
                         String empresa = vaga[2];
 
                         try {
+                            if (!ScraperJobFilter.eTechJob(titulo)) {
+                                System.out.println("⏭️ [InfoJobs] Ignorada (não é vaga de TI): " + titulo);
+                                continue;
+                            }
+
                             Optional<Job> existente = jobService.buscarPorLink(link);
                             if (existente.isPresent()) {
                                 jobService.associarStack(existente.get(), stack);

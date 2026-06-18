@@ -9,6 +9,7 @@ import searchjobs.pds.back.entities.User;
 import searchjobs.pds.back.services.ApplicationService;
 import searchjobs.pds.back.services.DescricaoEnricherService;
 import searchjobs.pds.back.services.JobService;
+import searchjobs.pds.back.services.JobTitleFilterService;
 import searchjobs.pds.back.services.JobValidationService;
 import searchjobs.pds.back.services.ScrapingOrchestratorService;
 
@@ -24,16 +25,19 @@ public class JobController {
     private final DescricaoEnricherService descricaoEnricherService;
     private final ScrapingOrchestratorService scrapingOrchestratorService;
     private final JobValidationService jobValidationService;
+    private final JobTitleFilterService jobTitleFilterService;
 
     public JobController(JobService jobService, ApplicationService applicationService,
                          DescricaoEnricherService descricaoEnricherService,
                          ScrapingOrchestratorService scrapingOrchestratorService,
-                         JobValidationService jobValidationService) {
+                         JobValidationService jobValidationService,
+                         JobTitleFilterService jobTitleFilterService) {
         this.jobService = jobService;
         this.applicationService = applicationService;
         this.descricaoEnricherService = descricaoEnricherService;
         this.scrapingOrchestratorService = scrapingOrchestratorService;
         this.jobValidationService = jobValidationService;
+        this.jobTitleFilterService = jobTitleFilterService;
     }
 
     @GetMapping
@@ -80,6 +84,19 @@ public class JobController {
         } catch (Exception e) {
             return ResponseEntity.ok(Map.of("erro", e.getMessage()));
         }
+    }
+
+    @PostMapping("/filtrar-titulo")
+    public ResponseEntity<Map<String, String>> filtrarTitulo() {
+        new Thread(() -> {
+            try {
+                jobTitleFilterService.filtrarVagasNaoTech();
+            } catch (Exception e) {
+                System.err.println("❌ [FiltroTítulo] Erro fatal: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }).start();
+        return ResponseEntity.ok(Map.of("status", "Filtro de título iniciado. Acompanhe os logs do servidor."));
     }
 
     @PostMapping("/validar-vagas")

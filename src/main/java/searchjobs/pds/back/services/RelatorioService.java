@@ -134,7 +134,7 @@ public class RelatorioService {
 
     private RelatorioDTO.Resumo montarResumo(List<RelatorioDTO.CandidaturaItem> itens) {
 
-        // Por fonte (Gupy, InfoJobs, Empregos.com.br)
+        // Por fonte (Trampos, InfoJobs, Empregos.com.br)
         Map<String, Long> porFonte = itens.stream()
                 .collect(Collectors.groupingBy(
                         i -> i.fonte() != null ? i.fonte() : "Desconhecida",

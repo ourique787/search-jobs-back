@@ -96,9 +96,6 @@ public class JobValidationService {
     private boolean vagaEstaAtiva(String url) {
         if (url == null || url.isBlank()) return false;
 
-        // Gupy será substituído futuramente — ignora por enquanto
-        if (url.contains("gupy.io")) return true;
-
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
@@ -125,6 +122,14 @@ public class JobValidationService {
                 boolean encerrada = body.contains("não está mais disponivel")
                         || body.contains("não está mais disponível");
                 if (encerrada) System.out.println("💀 [Validação] Encerrada (infojobs.com.br): " + url);
+                return !encerrada;
+            }
+
+            if (url.contains("trampos.co")) {
+                boolean encerrada = body.contains("oportunidade encerrada")
+                        || body.contains("vaga encerrada")
+                        || body.contains("não está disponível");
+                if (encerrada) System.out.println("💀 [Validação] Encerrada (trampos.co): " + url);
                 return !encerrada;
             }
 

@@ -5,10 +5,11 @@ COPY . .
 RUN ./gradlew build -x test --no-daemon
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
-FROM eclipse-temurin:17-jre-bookworm
+FROM debian:bookworm-slim
 
-# Instala Chromium e ChromeDriver (Debian bookworm — sem snap, funciona em Docker)
+# Instala Java 17 + Chromium (Debian bookworm — sem snap, funciona em Docker)
 RUN apt-get update && apt-get install -y \
+    openjdk-17-jre-headless \
     chromium \
     chromium-driver \
     fonts-liberation \

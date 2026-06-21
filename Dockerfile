@@ -5,22 +5,20 @@ COPY . .
 RUN ./gradlew build -x test --no-daemon
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:17-jre-bookworm
 
-# Instala Chromium e ChromeDriver
+# Instala Chromium e ChromeDriver (Debian bookworm — sem snap, funciona em Docker)
 RUN apt-get update && apt-get install -y \
-    chromium-browser \
-    chromium-chromedriver \
+    chromium \
+    chromium-driver \
     fonts-liberation \
     libglib2.0-0 \
     libnss3 \
-    libgconf-2-4 \
     libfontconfig1 \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Variáveis para o ChromeDriverFactory detectar o ambiente de servidor
-ENV CHROME_BIN=/usr/bin/chromium-browser
+ENV CHROME_BIN=/usr/bin/chromium
 ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 ENV CHROME_HEADLESS=true
 

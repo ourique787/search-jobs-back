@@ -29,3 +29,8 @@ spring.mail.password=SEU_MAILTRAP_PASSWORD
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
 app.frontend-url=http://localhost:5173
+
+# Cloudinary (cloudinary.com - plano gratuito)
+cloudinary.cloud-name=SEU_CLOUD_NAME
+cloudinary.api-key=SUA_API_KEY
+cloudinary.api-secret=SEU_API_SECRET

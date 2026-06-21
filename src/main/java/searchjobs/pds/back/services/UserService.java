@@ -1,11 +1,11 @@
 package searchjobs.pds.back.services;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import searchjobs.pds.back.dto.AuthResponse;
 import searchjobs.pds.back.entities.Senioridade;
@@ -15,14 +15,11 @@ import searchjobs.pds.back.repositories.StackRepository;
 import searchjobs.pds.back.repositories.UserRepository;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 @Service
 public class UserService {
@@ -30,15 +27,14 @@ public class UserService {
     private final UserRepository userRepository;
     private final StackRepository stackRepository;
     private final PasswordEncoder passwordEncoder;
-
-    @Value("${app.base-url:http://localhost:8080}")
-    private String baseUrl;
+    private final Cloudinary cloudinary;
 
     public UserService(UserRepository userRepository, StackRepository stackRepository,
-                       PasswordEncoder passwordEncoder) {
+                       PasswordEncoder passwordEncoder, Cloudinary cloudinary) {
         this.userRepository = userRepository;
         this.stackRepository = stackRepository;
         this.passwordEncoder = passwordEncoder;
+        this.cloudinary = cloudinary;
     }
 
     public List<User> listarTodos() {
@@ -69,18 +65,19 @@ public class UserService {
         return toAuthResponse(null, user);
     }
 
+    @SuppressWarnings("unchecked")
     public AuthResponse atualizarFotoPerfil(String email, MultipartFile foto) throws IOException {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
 
-        String extensao = StringUtils.getFilenameExtension(foto.getOriginalFilename());
-        String nomeArquivo = UUID.randomUUID() + (extensao != null ? "." + extensao : "");
+        String publicId = "searchjobs/fotos/" + email.replaceAll("[^a-zA-Z0-9]", "_");
+        Map uploadResult = cloudinary.uploader().upload(foto.getBytes(), ObjectUtils.asMap(
+                "public_id", publicId,
+                "overwrite", true,
+                "resource_type", "image"
+        ));
 
-        Path diretorio = Paths.get("uploads/fotos");
-        Files.createDirectories(diretorio);
-        Files.write(diretorio.resolve(nomeArquivo), foto.getBytes());
-
-        user.setFotoPerfil(baseUrl + "/uploads/fotos/" + nomeArquivo);
+        user.setFotoPerfil((String) uploadResult.get("secure_url"));
         userRepository.save(user);
 
         return toAuthResponse(null, user);

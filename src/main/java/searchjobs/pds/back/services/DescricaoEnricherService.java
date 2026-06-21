@@ -1,9 +1,6 @@
 package searchjobs.pds.back.services;
 
-import io.github.bonigarcia.wdm.WebDriverManager;
 import org.openqa.selenium.*;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.stereotype.Service;
@@ -34,22 +31,8 @@ public class DescricaoEnricherService {
         System.out.println("🔬 [DescricaoEnricher] Vagas para enriquecer: " + vagas.size());
         System.out.println("════════════════════════════════════");
 
-        WebDriverManager.chromedriver().setup();
-
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--start-maximized");
-        options.addArguments("--disable-blink-features=AutomationControlled");
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--lang=pt-BR");
-        options.setExperimentalOption("excludeSwitches", List.of("enable-automation"));
-        options.setExperimentalOption("useAutomationExtension", false);
-        options.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                + "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
-
-        WebDriver driver = new ChromeDriver(options);
+        WebDriver driver = ChromeDriverFactory.create();
         JavascriptExecutor js = (JavascriptExecutor) driver;
-        js.executeScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
 
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
 

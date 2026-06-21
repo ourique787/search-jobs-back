@@ -1,0 +1,36 @@
+# Configura??o do Banco de Dados PostgreSQL
+spring.datasource.url=jdbc:postgresql://localhost:5433/searchjobs_db
+spring.datasource.username=postgres
+spring.datasource.password=SUA_SENHA_AQUI
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# Configura??o do Hibernate (JPA)
+spring.jpa.hibernate.ddl-auto=none
+
+# Executa schema.sql antes do Hibernate inicializar
+spring.sql.init.mode=always
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+# JWT
+jwt.secret=MINIMO_32_CARACTERES_TROQUE_ISSO_AQUI!
+jwt.expiration=86400000
+
+# Upload de arquivos
+spring.servlet.multipart.max-file-size=5MB
+spring.servlet.multipart.max-request-size=10MB
+app.base-url=http://localhost:8080
+
+# Email (Mailtrap sandbox para dev - veja sandbox.smtp.mailtrap.io)
+spring.mail.host=sandbox.smtp.mailtrap.io
+spring.mail.port=2525
+spring.mail.username=SEU_MAILTRAP_USERNAME
+spring.mail.password=SEU_MAILTRAP_PASSWORD
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+app.frontend-url=http://localhost:5173
+
+# Cloudinary (cloudinary.com - plano gratuito)
+cloudinary.cloud-name=SEU_CLOUD_NAME
+cloudinary.api-key=SUA_API_KEY
+cloudinary.api-secret=SEU_API_SECRET

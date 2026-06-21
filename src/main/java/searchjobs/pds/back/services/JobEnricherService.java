@@ -25,8 +25,8 @@ public class JobEnricherService implements CommandLineRunner {
     }
 
     @Override
-    public void run(String... args) throws Exception {
-        enriquecerVagas();
+    public void run(String... args) {
+        // Controlado pelo ScrapingOrchestratorService
     }
 
     @Transactional

@@ -36,8 +36,7 @@ public class ScrapingOrchestratorService implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // Descomente para ativar o pipeline completo na inicialização:
-        // iniciarPipeline();
+        iniciarPipeline();
     }
 
     public void iniciarPipeline() {

@@ -46,8 +46,8 @@ public class TramposScraperService implements CommandLineRunner {
     }
 
     @Override
-    public void run(String... args) throws Exception {
-        iniciarScraping();
+    public void run(String... args) {
+        // Controlado pelo ScrapingOrchestratorService
     }
 
     public void iniciarScraping() {

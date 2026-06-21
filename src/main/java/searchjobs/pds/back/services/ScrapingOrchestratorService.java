@@ -1,5 +1,6 @@
 package searchjobs.pds.back.services;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
@@ -9,6 +10,9 @@ import java.util.concurrent.*;
 @Service
 @Order(2)
 public class ScrapingOrchestratorService implements CommandLineRunner {
+
+    @Value("${scraping.enabled:true}")
+    private boolean scrapingEnabled;
 
     private final TramposScraperService tramposScraperService;
     private final InfoJobsScraperService infoJobsScraperService;
@@ -36,7 +40,11 @@ public class ScrapingOrchestratorService implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        iniciarPipeline();
+        if (scrapingEnabled) {
+            iniciarPipeline();
+        } else {
+            System.out.println("ℹ️ [Orchestrator] Scraping desativado (SCRAPING_ENABLED=false).");
+        }
     }
 
     public void iniciarPipeline() {

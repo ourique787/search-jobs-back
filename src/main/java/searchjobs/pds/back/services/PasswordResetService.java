@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import searchjobs.pds.back.entities.PasswordResetToken;
@@ -69,7 +70,8 @@ public class PasswordResetService {
         tokenRepository.save(resetToken);
     }
 
-    private void enviarEmail(User user, String token) {
+    @Async
+    public void enviarEmail(User user, String token) {
         String link = frontendUrl + "/reset-password?token=" + token;
 
         SimpleMailMessage message = new SimpleMailMessage();

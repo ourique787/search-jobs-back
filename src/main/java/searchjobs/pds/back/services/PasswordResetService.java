@@ -46,7 +46,7 @@ public class PasswordResetService {
             LocalDateTime expiry = LocalDateTime.now().plusHours(1);
             tokenRepository.save(new PasswordResetToken(token, user, expiry));
 
-            enviarEmail(user, token);
+            new Thread(() -> enviarEmail(user, token)).start();
         });
     }
 
@@ -70,8 +70,7 @@ public class PasswordResetService {
         tokenRepository.save(resetToken);
     }
 
-    @Async
-    public void enviarEmail(User user, String token) {
+    private void enviarEmail(User user, String token) {
         String link = frontendUrl + "/reset-password?token=" + token;
 
         SimpleMailMessage message = new SimpleMailMessage();

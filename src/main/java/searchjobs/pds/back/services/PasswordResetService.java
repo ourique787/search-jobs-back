@@ -40,8 +40,9 @@ public class PasswordResetService {
 
     @Transactional
     public void solicitarReset(String email) {
-        // Sempre retorna 200 para não expor quais emails existem
-        userRepository.findByEmail(email).ifPresent(user -> {
+        System.out.println("📧 [Email] Solicitação de reset para: " + email);
+        userRepository.findByEmail(email).ifPresentOrElse(user -> {
+            System.out.println("📧 [Email] Usuário encontrado: " + user.getNome());
             tokenRepository.deleteByUser(user);
 
             String token = UUID.randomUUID().toString();
@@ -50,12 +51,15 @@ public class PasswordResetService {
 
             new Thread(() -> {
                 try {
+                    System.out.println("📧 [Email] Enviando para: " + user.getEmail());
                     enviarEmail(user, token);
+                    System.out.println("✅ [Email] Enviado com sucesso para: " + user.getEmail());
                 } catch (Exception e) {
                     System.err.println("❌ [Email] Erro ao enviar: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }).start();
-        });
+        }, () -> System.out.println("⚠️ [Email] Email não encontrado no banco: " + email));
     }
 
     @Transactional

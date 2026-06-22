@@ -5,8 +5,6 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.*;
-
 @Service
 @Order(2)
 public class ScrapingOrchestratorService implements CommandLineRunner {
@@ -49,20 +47,12 @@ public class ScrapingOrchestratorService implements CommandLineRunner {
 
     public void iniciarPipeline() {
         System.out.println("\n════════════════════════════════════");
-        System.out.println("🚀 [Orchestrator] Scrapers iniciados em paralelo...");
+        System.out.println("🚀 [Orchestrator] Scrapers iniciados sequencialmente...");
         System.out.println("════════════════════════════════════\n");
 
-        ExecutorService executor = Executors.newFixedThreadPool(3);
-
-        Future<?> trampos  = executor.submit(tramposScraperService::iniciarScraping);
-        Future<?> infoJobs = executor.submit(infoJobsScraperService::iniciarScraping);
-        Future<?> empregos = executor.submit(empregosBrScraperService::iniciarScraping);
-
-        executor.shutdown();
-
-        aguardar("Trampos",  trampos);
-        aguardar("InfoJobs", infoJobs);
-        aguardar("Empregos", empregos);
+        executar("Trampos",  tramposScraperService::iniciarScraping);
+        executar("InfoJobs", infoJobsScraperService::iniciarScraping);
+        executar("Empregos", empregosBrScraperService::iniciarScraping);
 
         System.out.println("\n════════════════════════════════════");
         System.out.println("✅ [Orchestrator] Scrapers concluídos — enriquecendo stacks...");
@@ -88,15 +78,11 @@ public class ScrapingOrchestratorService implements CommandLineRunner {
         System.out.println("════════════════════════════════════\n");
     }
 
-    private void aguardar(String nome, Future<?> future) {
+    private void executar(String nome, Runnable tarefa) {
         try {
-            future.get();
-        } catch (ExecutionException e) {
-            System.err.println("❌ [Orchestrator] Erro no scraper " + nome + ": "
-                    + e.getCause().getMessage());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            System.err.println("❌ [Orchestrator] Scraper " + nome + " interrompido.");
+            tarefa.run();
+        } catch (Exception e) {
+            System.err.println("❌ [Orchestrator] Erro no scraper " + nome + ": " + e.getMessage());
         }
     }
 }

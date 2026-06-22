@@ -29,11 +29,13 @@ public class ChromeDriverFactory {
             options.addArguments("--headless");
         }
 
-        options.addArguments("--start-maximized");
+        options.addArguments("--window-size=1920,1080");
         options.addArguments("--disable-blink-features=AutomationControlled");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--disable-gpu");
+        options.addArguments("--no-zygote");
+        options.addArguments("--disable-setuid-sandbox");
         options.addArguments("--lang=pt-BR");
         options.addArguments("--disable-notifications");
         options.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "

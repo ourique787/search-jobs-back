@@ -4,7 +4,6 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import searchjobs.pds.back.entities.PasswordResetToken;
@@ -26,6 +25,9 @@ public class PasswordResetService {
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
+    @Value("${spring.mail.username}")
+    private String mailFrom;
+
     public PasswordResetService(UserRepository userRepository,
                                 PasswordResetTokenRepository tokenRepository,
                                 JavaMailSender mailSender,
@@ -46,7 +48,13 @@ public class PasswordResetService {
             LocalDateTime expiry = LocalDateTime.now().plusHours(1);
             tokenRepository.save(new PasswordResetToken(token, user, expiry));
 
-            new Thread(() -> enviarEmail(user, token)).start();
+            new Thread(() -> {
+                try {
+                    enviarEmail(user, token);
+                } catch (Exception e) {
+                    System.err.println("❌ [Email] Erro ao enviar: " + e.getMessage());
+                }
+            }).start();
         });
     }
 
@@ -74,6 +82,7 @@ public class PasswordResetService {
         String link = frontendUrl + "/reset-password?token=" + token;
 
         SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(mailFrom);
         message.setTo(user.getEmail());
         message.setSubject("Redefinição de senha - SearchJobs");
         message.setText(

@@ -27,8 +27,8 @@ public class PasswordResetService {
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
-    @Value("${resend.api-key:}")
-    private String resendApiKey;
+    @Value("${sendgrid.api-key:}")
+    private String sendgridApiKey;
 
     public PasswordResetService(UserRepository userRepository,
                                 PasswordResetTokenRepository tokenRepository,
@@ -93,17 +93,17 @@ public class PasswordResetService {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(resendApiKey);
+        headers.setBearerAuth(sendgridApiKey);
 
         Map<String, Object> body = Map.of(
-                "from", "SearchJobs <onboarding@resend.dev>",
-                "to", List.of(user.getEmail()),
+                "personalizations", List.of(Map.of("to", List.of(Map.of("email", user.getEmail())))),
+                "from", Map.of("email", "lucas.trajano@rede.ulbra.br", "name", "SearchJobs"),
                 "subject", "Redefinição de senha - SearchJobs",
-                "text", texto
+                "content", List.of(Map.of("type", "text/plain", "value", texto))
         );
 
         restTemplate.exchange(
-                "https://api.resend.com/emails",
+                "https://api.sendgrid.com/v3/mail/send",
                 HttpMethod.POST,
                 new HttpEntity<>(body, headers),
                 String.class

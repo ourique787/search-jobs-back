@@ -35,14 +35,12 @@ public class ChromeDriverFactory {
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--disable-gpu");
         options.addArguments("--no-zygote");
-        options.addArguments("--single-process");
         options.addArguments("--disable-setuid-sandbox");
         options.addArguments("--disable-extensions");
         options.addArguments("--disable-plugins");
         options.addArguments("--blink-settings=imagesEnabled=false");
         options.addArguments("--lang=pt-BR");
         options.addArguments("--disable-notifications");
-        options.addArguments("--js-flags=--max-old-space-size=128");
         options.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                 + "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
         options.setExperimentalOption("excludeSwitches", List.of("enable-automation"));

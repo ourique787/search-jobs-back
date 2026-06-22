@@ -2,16 +2,18 @@ package searchjobs.pds.back.services;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import searchjobs.pds.back.entities.PasswordResetToken;
 import searchjobs.pds.back.entities.User;
 import searchjobs.pds.back.repositories.PasswordResetTokenRepository;
 import searchjobs.pds.back.repositories.UserRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -19,22 +21,20 @@ public class PasswordResetService {
 
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
-    private final JavaMailSender mailSender;
     private final PasswordEncoder passwordEncoder;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
-    @Value("${spring.mail.username}")
-    private String mailFrom;
+    @Value("${resend.api-key:}")
+    private String resendApiKey;
 
     public PasswordResetService(UserRepository userRepository,
                                 PasswordResetTokenRepository tokenRepository,
-                                JavaMailSender mailSender,
                                 PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
-        this.mailSender = mailSender;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -84,20 +84,29 @@ public class PasswordResetService {
 
     private void enviarEmail(User user, String token) {
         String link = frontendUrl + "/reset-password?token=" + token;
-
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(mailFrom);
-        message.setTo(user.getEmail());
-        message.setSubject("Redefinição de senha - SearchJobs");
-        message.setText(
-                "Olá, " + user.getNome() + "!\n\n" +
+        String texto = "Olá, " + user.getNome() + "!\n\n" +
                 "Recebemos uma solicitação para redefinir sua senha.\n\n" +
                 "Clique no link abaixo para criar uma nova senha (válido por 1 hora):\n" +
                 link + "\n\n" +
                 "Se você não solicitou isso, ignore este email.\n\n" +
-                "SearchJobs"
+                "SearchJobs";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(resendApiKey);
+
+        Map<String, Object> body = Map.of(
+                "from", "SearchJobs <onboarding@resend.dev>",
+                "to", List.of(user.getEmail()),
+                "subject", "Redefinição de senha - SearchJobs",
+                "text", texto
         );
 
-        mailSender.send(message);
+        restTemplate.exchange(
+                "https://api.resend.com/emails",
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers),
+                String.class
+        );
     }
 }
